@@ -1,0 +1,69 @@
+#include <ESP8266WiFi.h>
+#include <IRremote.h>
+#include <ESP8266HTTPClient.h>
+
+// WiFi Credentials
+const char* ssid = "Shubham";          // Your WiFi SSID
+const char* password = "123456789";    // Your WiFi Password
+
+// ThingSpeak Credentials
+const String apiKey = "OU32QCWNLDH38LLL";    // ThingSpeak Write API Key
+const String channelID = "2759893";          // ThingSpeak Channel ID
+
+IRsend irsend(3);  // IR LED on GPIO4 (or replace with your GPIO pin)
+
+void setup() {
+  Serial.begin(115200);
+  irsend.begin(3);  // Initialize IR LED on GPIO4 (replace 4 with your GPIO pin)
+
+  // Connect to WiFi
+  WiFi.begin(ssid, password);
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(1000);
+    Serial.println("Connecting to WiFi...");
+  }
+  Serial.println("Connected to WiFi!");
+}
+
+void loop() {
+  if (WiFi.status() == WL_CONNECTED) {
+    WiFiClient client;  // Create a WiFiClient instance
+    HTTPClient http;
+
+    // Build the ThingSpeak API URL
+    String url = "http://api.thingspeak.com/channels/" + channelID + "/fields/1/last?api_key=" + apiKey;
+
+    // Use updated syntax for http.begin()
+    http.begin(client, url);
+
+    int httpCode = http.GET();  // Send HTTP GET request
+
+    if (httpCode > 0) {
+      if (httpCode == HTTP_CODE_OK) {  // Check if the response is HTTP 200
+        String response = http.getString();
+        Serial.println("Received: " + response);
+
+        // Check response and send IR signal
+        if (response == "IR_ON") {
+          irsend.sendNEC(0xED127F80, 32);  // Replace with your IR code for "ON"
+          Serial.println("IR command ON sent!");
+        } else if (response == "IR_OFF") {
+          irsend.sendNEC(0xE11E7F80, 32);  // Replace with your IR code for "OFF"
+          Serial.println("IR command OFF sent!");
+        } else {
+          Serial.println("Unknown response: " + response);
+        }
+      } else {
+        Serial.println("Unexpected HTTP response code: " + String(httpCode));
+      }
+    }// else {
+    //  Serial.println("HTTP GET failed, error: " + http.errorToString(httpCode).c_str());
+  //  }
+
+    http.end();  // Close the connection
+  } else {
+    Serial.println("WiFi not connected!");
+  }
+
+  delay(1000);  // Wait for 1 second before the next loop
+}

@@ -1,0 +1,19 @@
+#include <IRremote.h>
+
+const int irLedPin = 3; // Pin connected to the IR LED
+IRsend irsend(irLedPin); // Initialize IRsend object with the pin number
+
+void setup() {
+    Serial.begin(9600);
+    irsend.begin(irLedPin); // Start the IR transmitter on the specified pin
+    Serial.println("IR 5   transmitter ready");
+}
+
+void loop() {
+    // Send the IR signal
+    irsend.sendNEC(0xF40B0707, 32); // Replace 0xFFA25D with the desired IR code
+    Serial.println("IR Signal Sent");
+
+    // Wait a bit before sending again to avoid spamming
+    delay(1000); // 1-second delay before repeating (adjust as needed)
+}
